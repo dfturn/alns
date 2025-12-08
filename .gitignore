@@ -1,0 +1,27 @@
+# Build instructions
+go.sum
+
+# Frontend
+frontend/node_modules
+frontend/dist
+frontend/.env.local
+
+# Backend
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+*~
+.DS_Store
+
+alns
+server

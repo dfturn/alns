@@ -1,0 +1,18 @@
+{
+  "name": "air-land-sea",
+  "version": "1.0.0",
+  "description": "Air, Land & Sea - A two-player tactical card game",
+  "scripts": {
+    "dev": "concurrently \"go run main.go\" \"cd frontend && npm run dev\"",
+    "build": "cd frontend && npm run build && cd .. && go build -o server .",
+    "build:frontend": "cd frontend && npm run build",
+    "build:backend": "go build -o server .",
+    "start:backend": "go run main.go",
+    "start:frontend": "cd frontend && npm run dev",
+    "docker:build": "docker build -t air-land-sea .",
+    "docker:run": "docker run -p 8080:8080 air-land-sea"
+  },
+  "keywords": ["game", "card-game", "react", "golang"],
+  "author": "",
+  "license": "MIT"
+}
