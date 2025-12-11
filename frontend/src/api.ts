@@ -11,7 +11,7 @@ class ApiClient {
 
   constructor(baseUrl?: string) {
     this.baseUrl =
-      baseUrl || import.meta.env.VITE_API_URL || "http://localhost:8080";
+      baseUrl || import.meta.env.DEV ? "http://localhost:8080" : "";
   }
 
   async createRoom(playerName: string): Promise<CreateRoomResponse> {
