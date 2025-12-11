@@ -900,10 +900,9 @@ export default function GameBoard({ gameId, playerId }: GameBoardProps) {
                 />
               ))}
             </div>
-
-            <div className="row g-3 align-items-stretch theater-grid">
+            <div className="theater-grid">
               {theaterOrder.map((theater) => (
-                <div key={theater} className="col-12 col-md-4 d-flex">
+                <div key={theater} className="theater-column d-flex">
                   <div
                     className="theater-slot flex-grow-1 d-flex flex-column align-items-stretch"
                     onDragOver={(event) => handleDragOver(event, theater)}
