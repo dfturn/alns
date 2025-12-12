@@ -1,5 +1,5 @@
 import type { CSSProperties, DragEvent, TouchEvent } from "react";
-import { useRef } from "react";
+import { useRef, useCallback } from "react";
 import type { Card as CardType } from "../types";
 import {
   getCardBackgroundPosition,
@@ -16,6 +16,8 @@ interface CardProps {
   draggable?: boolean;
   onDragStart?: (event: DragEvent<HTMLDivElement>) => void;
   onDragEnd?: (event: DragEvent<HTMLDivElement>) => void;
+  onTouchDragStart?: () => void;
+  onTouchDragEnd?: () => void;
   style?: CSSProperties;
   onLongPress?: () => void;
   longPressThreshold?: number;
@@ -31,6 +33,9 @@ export default function Card({
   draggable = false,
   onDragStart,
   onDragEnd,
+  onTouchDragStart,
+  // onTouchDragEnd is intentionally not used - TouchDragOverlay handles the drop
+  onTouchDragEnd: _onTouchDragEnd,
   style = {},
   onLongPress,
   longPressThreshold = 500,
@@ -40,6 +45,8 @@ export default function Card({
   const backgroundSize = getCardBackgroundSize();
   const longPressTimer = useRef<number | null>(null);
   const longPressTriggered = useRef(false);
+  const touchStartPos = useRef<{ x: number; y: number } | null>(null);
+  const isDragging = useRef(false);
 
   const clearLongPress = () => {
     if (longPressTimer.current !== null) {
@@ -48,36 +55,86 @@ export default function Card({
     }
   };
 
-  const handleTouchStart = (event: TouchEvent<HTMLDivElement>) => {
-    if (!onLongPress) return;
-    if (event.touches.length > 1) return;
-    clearLongPress();
-    longPressTriggered.current = false;
-    longPressTimer.current = window.setTimeout(() => {
-      longPressTimer.current = null;
-      longPressTriggered.current = true;
-      onLongPress();
-    }, longPressThreshold);
-  };
+  const handleTouchStart = useCallback(
+    (event: TouchEvent<HTMLDivElement>) => {
+      if (event.touches.length > 1) return;
 
-  const handleTouchMove = (event: TouchEvent<HTMLDivElement>) => {
-    if (!onLongPress) return;
-    if (event.touches.length !== 1) {
-      clearLongPress();
+      const touch = event.touches[0];
+      touchStartPos.current = { x: touch.clientX, y: touch.clientY };
+      isDragging.current = false;
       longPressTriggered.current = false;
-      return;
-    }
-    clearLongPress();
-    longPressTriggered.current = false;
-  };
 
-  const handleTouchEnd = () => {
+      // Set up long press timer if handler exists
+      if (onLongPress) {
+        clearLongPress();
+        longPressTimer.current = window.setTimeout(() => {
+          longPressTimer.current = null;
+          longPressTriggered.current = true;
+          onLongPress();
+        }, longPressThreshold);
+      }
+
+      // If draggable, prevent default to stop scroll
+      if (draggable && onTouchDragStart) {
+        event.preventDefault();
+      }
+    },
+    [draggable, onLongPress, onTouchDragStart, longPressThreshold]
+  );
+
+  const handleTouchMove = useCallback(
+    (event: TouchEvent<HTMLDivElement>) => {
+      if (event.touches.length !== 1) {
+        clearLongPress();
+        longPressTriggered.current = false;
+        isDragging.current = false;
+        return;
+      }
+
+      const touch = event.touches[0];
+      const startPos = touchStartPos.current;
+
+      if (!startPos) return;
+
+      const deltaX = Math.abs(touch.clientX - startPos.x);
+      const deltaY = Math.abs(touch.clientY - startPos.y);
+      const moveThreshold = 10;
+
+      // If moved enough, cancel long press and start drag
+      if (deltaX > moveThreshold || deltaY > moveThreshold) {
+        clearLongPress();
+        longPressTriggered.current = false;
+
+        // Start drag if draggable and not already dragging
+        if (draggable && !isDragging.current && onTouchDragStart) {
+          isDragging.current = true;
+          onTouchDragStart();
+          event.preventDefault();
+        }
+      }
+
+      // Prevent scroll while dragging
+      if (isDragging.current) {
+        event.preventDefault();
+      }
+    },
+    [draggable, onTouchDragStart]
+  );
+
+  const handleTouchEnd = useCallback(() => {
     clearLongPress();
-  };
+    // Don't call onTouchDragEnd here - let TouchDragOverlay handle the drop
+    // It will call handleDragEnd after processing the drop target
+    touchStartPos.current = null;
+    isDragging.current = false;
+  }, []);
 
   const handleClick = () => {
     if (longPressTriggered.current) {
       longPressTriggered.current = false;
+      return;
+    }
+    if (isDragging.current) {
       return;
     }
     onClick?.();
@@ -90,6 +147,7 @@ export default function Card({
     backgroundPosition: backgroundPosition,
     backgroundSize: backgroundSize,
     backgroundRepeat: "no-repeat",
+    touchAction: draggable ? "none" : "auto",
     ...style,
   };
 
@@ -112,7 +170,7 @@ export default function Card({
       onDragEnd={onDragEnd}
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
-      onTouchCancel={clearLongPress}
+      onTouchCancel={handleTouchEnd}
       onTouchMove={handleTouchMove}
     />
   );

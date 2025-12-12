@@ -13,6 +13,8 @@ interface TheaterProps {
   type: TheaterType;
   opponentCards: PlayedCard[];
   playerCards: PlayedCard[];
+  maxOpponentCards: number;
+  maxPlayerCards: number;
   isDropAllowed?: boolean;
   isDropActive?: boolean;
   isPreferred?: boolean;
@@ -50,6 +52,8 @@ export default function Theater({
   type,
   opponentCards,
   playerCards,
+  maxOpponentCards,
+  maxPlayerCards,
   isDropAllowed = false,
   isDropActive = false,
   isPreferred = false,
@@ -123,16 +127,20 @@ export default function Theater({
   const baseStyle: CSSProperties = {
     backgroundImage: info.backgroundImage,
     width: "100%",
-    height: `${Math.max(cardHeight * 0.68, 84)}px`,
+    // Use aspect ratio to maintain proper proportions (images are roughly 3:2)
+    aspectRatio: "3 / 2",
   };
 
-  const playerStackHeight = playerCards.length
-    ? cardHeight + (playerCards.length - 1) * stackOffset
-    : stackOffset;
+  // Use max card counts across all theaters for consistent stack heights
+  // This ensures all theater images align horizontally
+  const minCards = 1;
+  const effectiveMaxOpponent = Math.max(maxOpponentCards, minCards);
+  const effectiveMaxPlayer = Math.max(maxPlayerCards, minCards);
 
-  const opponentStackHeight = opponentCards.length
-    ? cardHeight + (opponentCards.length - 1) * stackOffset
-    : stackOffset;
+  // Calculate stack heights based on max counts, not actual counts
+  const playerStackHeight = cardHeight + (effectiveMaxPlayer - 1) * stackOffset;
+  const opponentStackHeight =
+    cardHeight + (effectiveMaxOpponent - 1) * stackOffset;
 
   return (
     <div className={frameClasses} style={frameStyle} ref={frameRef}>

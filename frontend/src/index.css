@@ -132,10 +132,67 @@ body {
 }
 
 .hand-drop-zone {
-  min-height: 260px;
+  min-height: 140px;
   display: flex;
   flex-direction: column;
   justify-content: center;
+  touch-action: pan-y pinch-zoom;
+}
+
+/* Player hand responsive card sizing */
+.player-hand-container {
+  --hand-gap: 8px;
+  padding: 12px;
+  overflow: hidden;
+}
+
+.player-hand-cards {
+  display: flex;
+  justify-content: center;
+  gap: var(--hand-gap);
+  flex-wrap: nowrap;
+  width: 100%;
+  max-width: 100%;
+}
+
+.player-hand-card.game-card {
+  /* Use flex to allow shrinking, with a preferred and max size */
+  flex: 0 1 100px;
+  min-width: 48px;
+  max-width: 100px;
+  height: auto;
+  aspect-ratio: 2 / 3;
+}
+
+@media (max-width: 768px) {
+  .player-hand-container {
+    --hand-gap: 6px;
+    padding: 8px;
+  }
+  
+  .player-hand-card.game-card {
+    flex: 0 1 80px;
+    min-width: 40px;
+    max-width: 80px;
+  }
+}
+
+@media (max-width: 480px) {
+  .player-hand-container {
+    --hand-gap: 4px;
+    padding: 6px;
+  }
+  
+  .player-hand-card.game-card {
+    flex: 0 1 60px;
+    min-width: 36px;
+    max-width: 60px;
+  }
+}
+
+/* Draggable cards should prevent scroll interference */
+.game-card[draggable="true"] {
+  touch-action: none;
 }
 
 .deck-drop-zone,
