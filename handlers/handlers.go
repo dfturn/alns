@@ -75,6 +75,7 @@ type DrawCardRequest struct {
 type ManipulateCardRequest struct {
 	PlayerID string             `json:"playerId"`
 	Theater  models.TheaterType `json:"theater"`
+	CardID   int                `json:"cardId"`
 	Action   string             `json:"action"` // "flip", "destroy", or "return"
 }
 
@@ -310,7 +311,7 @@ func (h *Handler) ManipulateCard(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	game, err := h.gameService.ManipulateCard(gameID, req.PlayerID, req.Theater, req.Action)
+	game, err := h.gameService.ManipulateCard(gameID, req.PlayerID, req.Theater, req.CardID, req.Action)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return

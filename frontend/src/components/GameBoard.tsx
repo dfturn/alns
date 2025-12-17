@@ -245,6 +245,19 @@ export default function GameBoard({ gameId, playerId }: GameBoardProps) {
     );
   };
 
+  const getTopCardInStack = (
+    theater: TheaterType,
+    targetPlayerId: string
+  ): PlayedCard | null => {
+    const cards = gameState.theaters[theater].cards;
+    for (let i = cards.length - 1; i >= 0; i -= 1) {
+      if (cards[i].playerId === targetPlayerId) {
+        return cards[i];
+      }
+    }
+    return null;
+  };
+
   // Event handlers
   const handleSubmitScores = async () => {
     if (!isScoringPhase || playerSubmitted) return;
@@ -351,7 +364,11 @@ export default function GameBoard({ gameId, playerId }: GameBoardProps) {
               onDrop={handleDropOnTarget}
               onTheaterCardDragStart={handleTheaterCardDragStart}
               onTheaterCardDragEnd={handleDragEnd}
-              onTheaterCardClick={(theater) => manipulateCard(theater, "flip")}
+              onTheaterCardClick={(theater, playedCard) => {
+                const topCard = getTopCardInStack(theater, playedCard.playerId);
+                if (!topCard) return;
+                manipulateCard(theater, topCard.card.id, "flip");
+              }}
               onCardPreview={(card, faceUp) => {
                 if (faceUp) {
                   openHandCardPreview(card);

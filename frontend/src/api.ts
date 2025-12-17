@@ -136,6 +136,7 @@ class ApiClient {
     gameId: string,
     playerId: string,
     theater: TheaterType,
+    cardId: number,
     action: "flip" | "destroy" | "return"
   ): Promise<GameState> {
     const response = await fetch(
@@ -145,7 +146,7 @@ class ApiClient {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ playerId, theater, action }),
+        body: JSON.stringify({ playerId, theater, cardId, action }),
       }
     );
 

@@ -21,6 +21,7 @@ interface UseDragDropOptions {
   onDestroyCard: (card: Card) => Promise<void>;
   onManipulateCard: (
     theater: TheaterType,
+    cardId: number,
     action: "flip" | "destroy" | "return"
   ) => Promise<void>;
   getCardFaceUp: (cardId: number) => boolean;
@@ -83,7 +84,6 @@ export function useDragDrop({
 
       if (dragContext.type === "theater") {
         if (!isMyTurn || !isPlaying) return false;
-        if (dragContext.playedCard.playerId !== playerId) return false;
         return target === "hand" || target === "deck" || target === "trash";
       }
 
@@ -121,17 +121,12 @@ export function useDragDrop({
 
   const handleTheaterCardDragStart = useCallback(
     (theater: TheaterType, playedCard: PlayedCard) => {
-      if (
-        !isMyTurn ||
-        !isPlaying ||
-        isLoading ||
-        playedCard.playerId !== playerId
-      ) {
+      if (!isMyTurn || !isPlaying || isLoading) {
         return;
       }
       setDragContext({ type: "theater", theater, playedCard });
     },
-    [isMyTurn, isPlaying, isLoading, playerId]
+    [isMyTurn, isPlaying, isLoading]
   );
 
   const handleDragEnd = useCallback(() => {
@@ -170,11 +165,23 @@ export function useDragDrop({
 
       try {
         if (target === "hand" && context.type === "theater") {
-          await onManipulateCard(context.theater, "return");
+          await onManipulateCard(
+            context.theater,
+            context.playedCard.card.id,
+            "return"
+          );
         } else if (target === "deck" && context.type === "theater") {
-          await onManipulateCard(context.theater, "flip");
+          await onManipulateCard(
+            context.theater,
+            context.playedCard.card.id,
+            "flip"
+          );
         } else if (target === "trash" && context.type === "theater") {
-          await onManipulateCard(context.theater, "destroy");
+          await onManipulateCard(
+            context.theater,
+            context.playedCard.card.id,
+            "destroy"
+          );
         } else if (target === "trash" && context.type === "hand") {
           await onDestroyCard(context.card);
         } else if (
@@ -210,11 +217,23 @@ export function useDragDrop({
 
       try {
         if (target === "hand" && context.type === "theater") {
-          await onManipulateCard(context.theater, "return");
+          await onManipulateCard(
+            context.theater,
+            context.playedCard.card.id,
+            "return"
+          );
         } else if (target === "deck" && context.type === "theater") {
-          await onManipulateCard(context.theater, "flip");
+          await onManipulateCard(
+            context.theater,
+            context.playedCard.card.id,
+            "flip"
+          );
         } else if (target === "trash" && context.type === "theater") {
-          await onManipulateCard(context.theater, "destroy");
+          await onManipulateCard(
+            context.theater,
+            context.playedCard.card.id,
+            "destroy"
+          );
         } else if (target === "trash" && context.type === "hand") {
           await onDestroyCard(context.card);
         } else if (

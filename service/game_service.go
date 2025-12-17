@@ -309,7 +309,7 @@ func (s *GameService) DrawCard(gameID, playerID string) (*models.GameState, erro
 }
 
 // ManipulateCard allows flipping, destroying, or returning a card to hand
-func (s *GameService) ManipulateCard(gameID, playerID string, theater models.TheaterType, action string) (*models.GameState, error) {
+func (s *GameService) ManipulateCard(gameID, playerID string, theater models.TheaterType, cardID int, action string) (*models.GameState, error) {
 	game, err := s.GetGame(gameID)
 	if err != nil {
 		return nil, err
@@ -328,28 +328,50 @@ func (s *GameService) ManipulateCard(gameID, playerID string, theater models.The
 		return nil, errors.New("no cards in this theater")
 	}
 
-	// Get the top card (last in slice)
-	topIndex := len(theaterObj.Cards) - 1
-	topCard := &theaterObj.Cards[topIndex]
+	// Determine target card
+	targetIndex := -1
+	var targetCard *models.PlayedCard
+	if cardID != 0 {
+		for i := len(theaterObj.Cards) - 1; i >= 0; i-- {
+			if theaterObj.Cards[i].Card.ID == cardID {
+				targetIndex = i
+				targetCard = &theaterObj.Cards[i]
+				break
+			}
+		}
+		if targetIndex == -1 {
+			return nil, errors.New("card not found in theater")
+		}
+
+		// Ensure the selected card is the top card for that player
+		for i := len(theaterObj.Cards) - 1; i > targetIndex; i-- {
+			if theaterObj.Cards[i].PlayerID == targetCard.PlayerID {
+				return nil, errors.New("card is not the top of that player's stack")
+			}
+		}
+	} else {
+		targetIndex = len(theaterObj.Cards) - 1
+		targetCard = &theaterObj.Cards[targetIndex]
+	}
 
 	switch action {
 	case "flip":
 		// Flip the card
-		topCard.FaceUp = !topCard.FaceUp
+		targetCard.FaceUp = !targetCard.FaceUp
 
 	case "destroy":
-		destroyed := *topCard
+		destroyed := *targetCard
 		// Remove the card from theater
-		theaterObj.Cards = theaterObj.Cards[:topIndex]
+		theaterObj.Cards = append(theaterObj.Cards[:targetIndex], theaterObj.Cards[targetIndex+1:]...)
 		game.Trash = append(game.Trash, destroyed.Card)
 
 	case "return":
 		// Return card to owner's hand
-		card := topCard.Card
-		theaterObj.Cards = theaterObj.Cards[:topIndex]
+		card := targetCard.Card
+		theaterObj.Cards = append(theaterObj.Cards[:targetIndex], theaterObj.Cards[targetIndex+1:]...)
 
 		// Add back to owner's hand
-		if topCard.PlayerID == game.Player1.ID {
+		if targetCard.PlayerID == game.Player1.ID {
 			game.Player1.Hand = append(game.Player1.Hand, card)
 		} else {
 			game.Player2.Hand = append(game.Player2.Hand, card)

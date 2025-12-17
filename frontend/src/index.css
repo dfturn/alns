@@ -234,14 +234,12 @@ body {
 .game-bg {
   background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
   min-height: 100vh;
-  height: 100vh;
-  overflow: hidden;
 }
 
 .game-bg .board-scroll {
   flex: 1 1 auto;
   min-height: 0;
-  overflow-y: auto;
+  overflow: visible;
 }
 
 .board-layout {

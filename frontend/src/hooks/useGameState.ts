@@ -23,6 +23,7 @@ interface UseGameStateReturn {
   destroyCard: (card: Card) => Promise<void>;
   manipulateCard: (
     theater: TheaterType,
+    cardId: number,
     action: "flip" | "destroy" | "return"
   ) => Promise<void>;
   endTurn: () => Promise<void>;
@@ -108,7 +109,11 @@ export function useGameState({
   );
 
   const manipulateCard = useCallback(
-    async (theater: TheaterType, action: "flip" | "destroy" | "return") => {
+    async (
+      theater: TheaterType,
+      cardId: number,
+      action: "flip" | "destroy" | "return"
+    ) => {
       if (!gameState) return;
       setIsLoading(true);
       setError("");
@@ -117,6 +122,7 @@ export function useGameState({
           gameId,
           playerId,
           theater,
+          cardId,
           action
         );
         setGameState(updatedGame);

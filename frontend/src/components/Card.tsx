@@ -1,5 +1,5 @@
 import type { CSSProperties, DragEvent, TouchEvent } from "react";
-import { useRef, useCallback } from "react";
+import { useRef, useCallback, useEffect } from "react";
 import type { Card as CardType } from "../types";
 import {
   getCardBackgroundPosition,
@@ -21,6 +21,8 @@ interface CardProps {
   style?: CSSProperties;
   onLongPress?: () => void;
   longPressThreshold?: number;
+  onDoubleTap?: () => void;
+  doubleTapThreshold?: number;
 }
 
 export default function Card({
@@ -39,20 +41,34 @@ export default function Card({
   style = {},
   onLongPress,
   longPressThreshold = 500,
+  onDoubleTap,
+  doubleTapThreshold = 300,
 }: CardProps) {
   const cardName = card?.name || "card-back";
   const backgroundPosition = getCardBackgroundPosition(cardName, faceUp);
   const backgroundSize = getCardBackgroundSize();
   const longPressTimer = useRef<number | null>(null);
   const longPressTriggered = useRef(false);
+  const doubleTapTriggered = useRef(false);
+  const lastTapTime = useRef<number>(0);
   const touchStartPos = useRef<{ x: number; y: number } | null>(null);
   const isDragging = useRef(false);
+  const singleTapTimer = useRef<number | null>(null);
+  const awaitingSingleTap = useRef(false);
 
   const clearLongPress = () => {
     if (longPressTimer.current !== null) {
       window.clearTimeout(longPressTimer.current);
       longPressTimer.current = null;
     }
+  };
+
+  const clearSingleTapTimer = () => {
+    if (singleTapTimer.current !== null) {
+      window.clearTimeout(singleTapTimer.current);
+      singleTapTimer.current = null;
+    }
+    awaitingSingleTap.current = false;
   };
 
   const handleTouchStart = useCallback(
@@ -63,6 +79,8 @@ export default function Card({
       touchStartPos.current = { x: touch.clientX, y: touch.clientY };
       isDragging.current = false;
       longPressTriggered.current = false;
+      doubleTapTriggered.current = false;
+      clearSingleTapTimer();
 
       // Set up long press timer if handler exists
       if (onLongPress) {
@@ -126,12 +144,58 @@ export default function Card({
     // Don't call onTouchDragEnd here - let TouchDragOverlay handle the drop
     // It will call handleDragEnd after processing the drop target
     touchStartPos.current = null;
+    const wasDragging = isDragging.current;
     isDragging.current = false;
+
+    if (onDoubleTap && !wasDragging && !longPressTriggered.current) {
+      const now = Date.now();
+      if (now - lastTapTime.current < doubleTapThreshold) {
+        doubleTapTriggered.current = true;
+        lastTapTime.current = 0;
+        clearSingleTapTimer();
+        onDoubleTap();
+        return;
+      }
+
+      doubleTapTriggered.current = false;
+      lastTapTime.current = now;
+
+      if (onClick) {
+        awaitingSingleTap.current = true;
+        clearSingleTapTimer();
+        singleTapTimer.current = window.setTimeout(() => {
+          singleTapTimer.current = null;
+          const shouldTrigger = awaitingSingleTap.current;
+          awaitingSingleTap.current = false;
+          if (shouldTrigger && !longPressTriggered.current) {
+            onClick();
+          }
+        }, doubleTapThreshold);
+      }
+      return;
+    }
+
+    doubleTapTriggered.current = false;
+    lastTapTime.current = 0;
+  }, [doubleTapThreshold, onClick, onDoubleTap]);
+
+  useEffect(() => {
+    return () => {
+      clearLongPress();
+      clearSingleTapTimer();
+    };
   }, []);
 
   const handleClick = () => {
     if (longPressTriggered.current) {
       longPressTriggered.current = false;
+      return;
+    }
+    if (doubleTapTriggered.current) {
+      doubleTapTriggered.current = false;
+      return;
+    }
+    if (awaitingSingleTap.current) {
       return;
     }
     if (isDragging.current) {
@@ -148,6 +212,7 @@ export default function Card({
     backgroundSize: backgroundSize,
     backgroundRepeat: "no-repeat",
     touchAction: draggable ? "none" : "auto",
+    WebkitTouchCallout: "none",
     ...style,
   };
 
@@ -168,6 +233,7 @@ export default function Card({
       draggable={draggable}
       onDragStart={onDragStart}
       onDragEnd={onDragEnd}
+      onContextMenu={(event) => event.preventDefault()}
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
       onTouchCancel={handleTouchEnd}

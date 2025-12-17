@@ -124,6 +124,16 @@ export function TheaterGrid({
                 onOpponentCardLongPress={(playedCard: PlayedCard) =>
                   onCardPreview(playedCard.card, playedCard.faceUp)
                 }
+                onOpponentCardClick={
+                  isMyTurn
+                    ? (playedCard: PlayedCard) =>
+                        onTheaterCardClick(theater, playedCard)
+                    : undefined
+                }
+                onOpponentCardDragStart={(playedCard: PlayedCard) =>
+                  onTheaterCardDragStart(theater, playedCard)
+                }
+                onOpponentCardDragEnd={onTheaterCardDragEnd}
               />
             </div>
             {isScoringPhase && (
@@ -413,7 +423,7 @@ export function PlayerHand({
             }
             onTouchDragEnd={onDragEnd}
             onDragEnd={onDragEnd}
-            onLongPress={() => onCardLongPress(card)}
+            onDoubleTap={() => onCardLongPress(card)}
             className="player-hand-card"
             style={{
               cursor: canDrag ? "grab" : "pointer",

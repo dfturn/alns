@@ -23,6 +23,9 @@ interface TheaterProps {
   onPlayerCardDragEnd?: () => void;
   onPlayerCardLongPress?: (playedCard: PlayedCard, index: number) => void;
   onOpponentCardLongPress?: (playedCard: PlayedCard, index: number) => void;
+  onOpponentCardClick?: (playedCard: PlayedCard, index: number) => void;
+  onOpponentCardDragStart?: (playedCard: PlayedCard, index: number) => void;
+  onOpponentCardDragEnd?: () => void;
 }
 
 function getTheaterInfo(type: TheaterType) {
@@ -62,6 +65,9 @@ export default function Theater({
   onPlayerCardDragEnd,
   onPlayerCardLongPress,
   onOpponentCardLongPress,
+  onOpponentCardClick,
+  onOpponentCardDragStart,
+  onOpponentCardDragEnd,
 }: TheaterProps) {
   const info = getTheaterInfo(type);
 
@@ -149,25 +155,49 @@ export default function Theater({
         style={{ height: opponentStackHeight, width: `${cardWidth}px` }}
       >
         {opponentCards.map((playedCard, index) => {
-          const offset = index * stackOffset;
+          const offset = (opponentCards.length - 1 - index) * stackOffset;
+          const isTopCard = index === opponentCards.length - 1;
           return (
             <CardComponent
               key={`${playedCard.card.id}-opponent-${index}`}
               card={playedCard.card}
               faceUp={playedCard.faceUp}
               rotated
-              onLongPress={() => onOpponentCardLongPress?.(playedCard, index)}
+              onClick={
+                isTopCard
+                  ? () => onOpponentCardClick?.(playedCard, index)
+                  : undefined
+              }
+              onDoubleTap={() => onOpponentCardLongPress?.(playedCard, index)}
+              draggable={isTopCard}
+              onDragStart={
+                isTopCard
+                  ? (event) => {
+                      onOpponentCardDragStart?.(playedCard, index);
+                      event.dataTransfer.setData("text/plain", "theater-card");
+                    }
+                  : undefined
+              }
+              onDragEnd={
+                isTopCard
+                  ? (event) => {
+                      onOpponentCardDragEnd?.();
+                      event.preventDefault();
+                    }
+                  : undefined
+              }
               style={{
                 position: "absolute",
                 left: "50%",
                 transform: "translate(-50%, -100%) rotate(180deg)",
                 top: offset + cardHeight,
-                pointerEvents: "none",
+                pointerEvents: isTopCard ? "auto" : "none",
+                cursor: isTopCard ? "grab" : "default",
                 userSelect: "none",
                 boxShadow: "0 -6px 20px rgba(0,0,0,0.35)",
                 width: `${cardWidth}px`,
                 height: `${cardHeight}px`,
-                zIndex: opponentCards.length - index,
+                zIndex: 100 + index,
               }}
             />
           );
@@ -210,7 +240,7 @@ export default function Theater({
                     }
                   : undefined
               }
-              onLongPress={() => onPlayerCardLongPress?.(playedCard, index)}
+              onDoubleTap={() => onPlayerCardLongPress?.(playedCard, index)}
               style={{
                 position: "absolute",
                 left: "50%",
