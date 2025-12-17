@@ -139,45 +139,50 @@ export default function Card({
     [draggable, onTouchDragStart]
   );
 
-  const handleTouchEnd = useCallback(() => {
-    clearLongPress();
-    // Don't call onTouchDragEnd here - let TouchDragOverlay handle the drop
-    // It will call handleDragEnd after processing the drop target
-    touchStartPos.current = null;
-    const wasDragging = isDragging.current;
-    isDragging.current = false;
+  const handleTouchEnd = useCallback(
+    (event: TouchEvent<HTMLDivElement>) => {
+      clearLongPress();
+      if (onDoubleTap || onLongPress || draggable) {
+        event.preventDefault();
+      }
+      // Don't call onTouchDragEnd here - let TouchDragOverlay handle the drop
+      // It will call handleDragEnd after processing the drop target
+      touchStartPos.current = null;
+      const wasDragging = isDragging.current;
+      isDragging.current = false;
 
-    if (onDoubleTap && !wasDragging && !longPressTriggered.current) {
-      const now = Date.now();
-      if (now - lastTapTime.current < doubleTapThreshold) {
-        doubleTapTriggered.current = true;
-        lastTapTime.current = 0;
-        clearSingleTapTimer();
-        onDoubleTap();
+      if (onDoubleTap && !wasDragging && !longPressTriggered.current) {
+        const now = Date.now();
+        if (now - lastTapTime.current < doubleTapThreshold) {
+          doubleTapTriggered.current = true;
+          lastTapTime.current = 0;
+          clearSingleTapTimer();
+          onDoubleTap();
+          return;
+        }
+
+        doubleTapTriggered.current = false;
+        lastTapTime.current = now;
+
+        if (onClick) {
+          awaitingSingleTap.current = true;
+          clearSingleTapTimer();
+          singleTapTimer.current = window.setTimeout(() => {
+            singleTapTimer.current = null;
+            const shouldTrigger = awaitingSingleTap.current;
+            awaitingSingleTap.current = false;
+            if (shouldTrigger && !longPressTriggered.current) {
+              onClick();
+            }
+          }, doubleTapThreshold);
+        }
         return;
       }
-
       doubleTapTriggered.current = false;
-      lastTapTime.current = now;
-
-      if (onClick) {
-        awaitingSingleTap.current = true;
-        clearSingleTapTimer();
-        singleTapTimer.current = window.setTimeout(() => {
-          singleTapTimer.current = null;
-          const shouldTrigger = awaitingSingleTap.current;
-          awaitingSingleTap.current = false;
-          if (shouldTrigger && !longPressTriggered.current) {
-            onClick();
-          }
-        }, doubleTapThreshold);
-      }
-      return;
-    }
-
-    doubleTapTriggered.current = false;
-    lastTapTime.current = 0;
-  }, [doubleTapThreshold, onClick, onDoubleTap]);
+      lastTapTime.current = 0;
+    },
+    [doubleTapThreshold, draggable, onClick, onDoubleTap, onLongPress]
+  );
 
   useEffect(() => {
     return () => {
@@ -211,7 +216,12 @@ export default function Card({
     backgroundPosition: backgroundPosition,
     backgroundSize: backgroundSize,
     backgroundRepeat: "no-repeat",
-    touchAction: draggable ? "none" : "auto",
+    touchAction:
+      draggable || onLongPress || onDoubleTap
+        ? draggable
+          ? "none"
+          : "manipulation"
+        : "auto",
     WebkitTouchCallout: "none",
     ...style,
   };
